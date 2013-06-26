@@ -4,44 +4,43 @@ player = gamvas.Actor.extend({
         var st = gamvas.state.getCurrentState();
         this.setFile(st.resource.getImage('rsc/'+ this.name + '.png'));
         var defaultState = this.getCurrentState();
+        this.setCenter(25, 25);
 
         var speed = 0;
             accel = 0,
-            angle = 0;
-            friction = -1;
+            angle = 0,
+            friction = -1,
+            angspeed = 0.05;
         
         defaultState.update = function(t){
             accel = 0;
-            if (gamvas.key.isPressed(controls.up))
+            if (gamvas.key.isPressed(controls.up)){
                 accel = 5;
+                console.log(this.actor.center, this.actor.position);
+            }
             if (gamvas.key.isPressed(controls.left)){
-                angle = (angle + 0.1) % (2 * Math.PI);
-                this.actor.setRotation(angle);
+                angle = (angle + angspeed) % (2 * Math.PI);
+                this.actor.setRotation(-angle);
             }
             if (gamvas.key.isPressed(controls.right)){
-                angle = (angle - 0.1) % (2 * Math.PI);
-                this.actor.setRotation(angle);
+                angle = (angle - angspeed) % (2 * Math.PI);
+                this.actor.setRotation(-angle);
             }
             speed = speed + accel
-            this.actor.move(Math.sin(angle) * speed * t, Math.cos(angle) * speed * t);
+            this.actor.move(Math.cos(angle) * speed * t, -1 * Math.sin(angle) * speed * t);
         }
     }
 });
 
-helloState = gamvas.State.extend({
+startState = gamvas.State.extend({
         init: function(){
             this.addActor(new player('p1', 10, 10, {'up': gamvas.key.UP, 'left': gamvas.key.LEFT, 'right': gamvas.key.RIGHT}));
-            //this.addActor(new player('p2', -20, 10, 3));
         },
         draw: function(t){
-            this.c.fillStyle = '#fff';
-            this.c.font = 'bold 20px sans-serif';
-            this.c.textAlign = 'center';
-            this.c.fillText("Hello World!", 0, 0);
         }
 });
 
 gamvas.event.addOnLoad(function(){
-    gamvas.state.addState(new helloState('helloworld'));
+    gamvas.state.addState(new startState());
     gamvas.start('gameCanvas');
 });
