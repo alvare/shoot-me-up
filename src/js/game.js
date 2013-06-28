@@ -72,24 +72,47 @@ shoot = gamvas.Actor.extend({
 startState = gamvas.State.extend({
         init: function(){
             this.images = {};
+            var state = this;
+            _(this.getActors()).each(function(a){state.removeActor(a.name)});
+            this.cleanUp();
+
             this.addActor(new player('p1', 200, 0, {'up': gamvas.key.UP, 'left': gamvas.key.LEFT, 'right': gamvas.key.RIGHT, 'down': gamvas.key.DOWN}, Math.PI));
             this.addActor(new player('p2', -200, 0, {'up': gamvas.key.W, 'left': gamvas.key.A, 'right': gamvas.key.D, 'down': gamvas.key.S}, 0));
+
             this.timer = gamvas.timer.getMilliseconds();
             this.cachedActors = this.getActors();
+            this.loser = "none";
         },
         draw: function(t){
-            var state = this;
-            var actors = _(this.cachedActors).groupBy(function(a){
-                return a.name[0];
-            });
+            if(this.loser == "none"){
+                var actors = _(this.cachedActors).groupBy(function(a){
+                    return a.name[0];
+                });
 
-            _(actors.p).each(function(p){
-                if(_(actors.s).some(function(s){return s.parentName != p.name && collides(s.position, p.position)}))
-                    state.removeActor(p.name);
-            });
+                var state = this;
+                _(actors.p).each(function(p){
+                    if(_(actors.s).some(function(s){return s.parentName != p.name && collides(s.position, p.position)})){
+                        state.removeActor(p.name);
+                        state.loser = p.name;
+                    }
+                });
 
-            this.timer = gamvas.timer.getMilliseconds();
-        }
+                this.timer = gamvas.timer.getMilliseconds();
+            } else {
+                this.c.fillStyle = '#fff';
+                this.c.font = 'bold 20px sans-serif';
+                this.c.textAlign = 'center';
+                this.c.fillText("Looser = " + this.loser, 0, 0);
+            }
+        },
+        onKeyDown: function(k) {
+            if (k == gamvas.key.R) {
+            console.log(this);
+                this.loser = "none";
+                this.init();
+            }
+            return gamvas.key.exitEvent();
+        }        
 });
 
 var collides = function(va, vb){
