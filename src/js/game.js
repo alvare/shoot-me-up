@@ -1,10 +1,13 @@
-player = gamvas.Actor.extend({
+var debug = 0;
+Player = gamvas.Actor.extend({
     create: function(name, x, y, controls, angle){
         this._super(name, x, y);
+
         var st = gamvas.state.getCurrentState();
-        this.setFile(st.resource.getImage('rsc/'+ this.name + '.png'));
         var defaultState = this.getCurrentState();
         var offset = {'x': 20, 'y': 25};
+
+        this.setFile(st.resource.getImage('rsc/'+ this.name + '.png'));
         this.setCenter(offset.x, offset.y);
         this.setRotation(-angle);
 
@@ -15,7 +18,8 @@ player = gamvas.Actor.extend({
             sCount = 0,
             friction = 0.5,
             maxS = 5,
-            interval = 0,
+            lasttime = 0,
+            interval = 0.2,
             angspeed = 0.05;
         
         defaultState.update = function(t){
@@ -24,10 +28,10 @@ player = gamvas.Actor.extend({
             var posY = this.actor.position.y
             if (gamvas.key.isPressed(controls.up)){
                 accel = pump;
-                if (gamvas.timer.getSeconds() - interval > 0.3){
-                    st.addActor(new shoot('shoot-' + name + ',' + sCount, posX, posY, angle));
+                if (gamvas.timer.getSeconds() - lasttime > interval){
+                    st.addActor(new Shoot('shoot-' + name + ',' + sCount, posX, posY, angle));
                     sCount++;
-                    interval = gamvas.timer.getSeconds();
+                    lasttime = gamvas.timer.getSeconds();
                 }
             } else if (gamvas.key.isPressed(controls.down)){
                 accel = -pump;
@@ -45,7 +49,7 @@ player = gamvas.Actor.extend({
     }
 });
 
-shoot = gamvas.Actor.extend({
+Shoot = gamvas.Actor.extend({
     create: function(name, x, y, angle){
         this._super(name, x, y);
         var st = gamvas.state.getCurrentState();
@@ -55,7 +59,6 @@ shoot = gamvas.Actor.extend({
         this.setRotation(-angle);
 
         this.parentName = name.split(',')[0].split('-')[1];
-        st.cachedActors = st.getActors();
 
         var speed = 300,
             time = gamvas.timer.getSeconds(),
@@ -73,25 +76,27 @@ startState = gamvas.State.extend({
         init: function(){
             this.images = {};
             var state = this;
-            _(this.getActors()).each(function(a){state.removeActor(a.name)});
+            _.each(this.getActors(), function(a){state.removeActor(a.name)});
             this.cleanUp();
 
-            this.addActor(new player('p1', 200, 0, {'up': gamvas.key.UP, 'left': gamvas.key.LEFT, 'right': gamvas.key.RIGHT, 'down': gamvas.key.DOWN}, Math.PI));
-            this.addActor(new player('p2', -200, 0, {'up': gamvas.key.W, 'left': gamvas.key.A, 'right': gamvas.key.D, 'down': gamvas.key.S}, 0));
+            this.addActor(new Player('p1', 200, 0, {'up': gamvas.key.UP, 'left': gamvas.key.LEFT, 'right': gamvas.key.RIGHT, 'down': gamvas.key.DOWN}, Math.PI));
+            this.addActor(new Player('p2', -200, 0, {'up': gamvas.key.W, 'left': gamvas.key.A, 'right': gamvas.key.D, 'down': gamvas.key.S}, 0));
 
             this.timer = gamvas.timer.getMilliseconds();
-            this.cachedActors = this.getActors();
             this.loser = "none";
         },
         draw: function(t){
             if(this.loser == "none"){
-                var actors = _(this.cachedActors).groupBy(function(a){
+                // silly gamvas uses properties instead of array elments, and lodash gets all confused
+                var actorsArray = []; for(var k in this.actors){ actorsArray.push(this.actors[k]) }
+                var actors = _.groupBy(actorsArray, function(a){
                     return a.name[0];
                 });
 
                 var state = this;
-                _(actors.p).each(function(p){
-                    if(_(actors.s).some(function(s){return s.parentName != p.name && collides(s.position, p.position)})){
+                //console.log(actors);
+                _.each(actors.p, function(p){
+                    if(_.some(actors.s, function(s){return s.parentName != p.name && collides(s.position, p.position)})){
                         state.removeActor(p.name);
                         state.loser = p.name;
                     }
@@ -107,7 +112,6 @@ startState = gamvas.State.extend({
         },
         onKeyDown: function(k) {
             if (k == gamvas.key.R) {
-            console.log(this);
                 this.loser = "none";
                 this.init();
             }
@@ -116,7 +120,7 @@ startState = gamvas.State.extend({
 });
 
 var collides = function(va, vb){
-    if(va.distance(vb) < 40)
+    if(va.distance(vb) < 30)
         return true
     else
         return false;
